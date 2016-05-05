@@ -6,7 +6,13 @@ MEMORY
 {
     /* External RAM area (2MB on CS1(0x200000-0x3fffff.MD6)) */
     sramall(rwx) : o = 0x220000, l = 0x020000 /* Don't change!!! SRAM is 128KB */
+    
+    /*
+     * ram のスタートアドレスは bootloaderの buffer領域と重ならない領域とすること.
+     * buffer領域は bootloader/ld.scr を参照のこと
+     */
     ram(rwx)     : o = 0x222000, l = 0x01e000 /* 128KB - buffer_size(at bootloader) */
+    
     stack(rw)    : o = 0x240000, l = 0x000000 /* end of RAM */
 }
 SECTIONS

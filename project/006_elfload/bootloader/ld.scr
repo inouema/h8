@@ -22,6 +22,11 @@ MEMORY
 
     /* External RAM area (2MB on CS1(0x200000-0x3fffff.MD6)) */
     sramall(rwx) : o = 0x220000, l = 0x020000 /* Don't change!!! SRAM is 128KB */
+    
+    /*
+     * buffer領域は os部 のRAM領域を重なること.
+     * この領域を変更したら os/ld.src も見直すこと.
+     */
     buffer(rwx)  : o = 0x220000, l = 0x002000 /* 8KB */
 
 
