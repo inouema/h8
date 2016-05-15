@@ -27,9 +27,12 @@
 *.i*86
 *.x86_64
 *.hex
+*.mot
 
 # Debug files
 *.dSYM/
+*.objdump
+
 
 # other folder
 kozos-3052/
