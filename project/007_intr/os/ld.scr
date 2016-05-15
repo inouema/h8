@@ -1,0 +1,79 @@
+/* Linker script, for H8/3052 on AKI-LAN target */
+OUTPUT_FORMAT("elf32-h8300")
+OUTPUT_ARCH(h8300h)
+ENTRY("_start")
+MEMORY
+{
+    softvec(rwx) : o = 0xffdf10, l = 0x000040   /* top of Inernal RAM */
+
+    /* External RAM area (2MB on CS1(0x200000-0x3fffff.MD6)) */
+    sramall(rwx) : o = 0x220000, l = 0x020000 /* Don't change!!! SRAM is 128KB */
+    
+    /*
+     * softvec(ram) のスタートアドレスは bootloaderの buffer領域と重ならない領域とすること.
+     * buffer領域は bootloader/ld.scr を参照のこと
+     */
+    ram(rwx)     : o = 0x222040, l = 0x01e000 /* 128KB - buffer_size(at bootloader) - softvec */
+    stack(rw)    : o = 0x240000, l = 0x000000 /* end of RAM */
+}
+SECTIONS
+{
+
+    .softvec :
+    {
+        _softvec = .;
+    } > softvec
+
+    .text :
+	{
+        _text_start = . ;
+	    KEEP(*(.text))
+	    . = ALIGN(2);
+   	    _text_end = . ;
+	} > ram
+
+    .rodata :
+	{
+        _rodata_start = . ;
+	    KEEP(*(.strings))
+	    KEEP(*(.rodata))
+		KEEP(*(.rodata.*))
+	    . = ALIGN(2);
+   	    _rodata_end = . ;
+	} > ram
+
+	
+    .data :
+	{
+        _data_start = . ;
+	    KEEP(*(.data))
+	    _data_end = . ;
+	}  > ram
+	
+    .bss :
+	{
+	    _bss_start = . ;
+	    KEEP(*(.bss))
+	    KEEP(*(COMMON))
+	    _bss_end = . ;
+	} > ram
+	
+	. = ALIGN(4);
+	_end = . ;
+
+    .stack :
+    {
+        _stack = . ;
+        *(.stack)
+    } > stack
+	
+    .stab 0 (NOLOAD) :
+	{
+	  [ .stab ]
+	}
+    .stabstr 0 (NOLOAD) :
+	{
+	  [ .stabstr ]
+	}
+}
+
