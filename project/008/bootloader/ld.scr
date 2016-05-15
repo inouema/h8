@@ -1,0 +1,128 @@
+/* Linker script, for H8/3052 on AKI-LAN target */
+/* OUTPUT_FORMAT("coff-h8300") */
+OUTPUT_ARCH(h8300h)
+ENTRY("_start")
+MEMORY
+{
+	/* 0xc4 is a magic entry.  We should have the linker just
+	   skip over it one day...  */
+	/* vectors : o = 0x0000, l = 0xc4 */
+	/* magicvectors : o = 0xc4, l = 0x3c */
+
+  vectors(r)    : o = 0x000000, l = 0x000100
+  rom(rx)       : o = 0x000100, l = 0x007f00 /* Internal ROM area */
+    
+  ramall(rxw)   : o = 0xffdf10, l = 0x001ff0  /* 8KB(8176) */
+  softvec(rw)	  : o = 0xffdf10, l = 0x000040  /* top of RAM */
+  data(rwx)     : o = 0xffdf50, l = 0x000300  /* 768B */
+  /* stack(rw)    : o = 0xffdf10, l = 0x02000 */
+  bootstack(rw) : o = 0xffff0c, l = 0x000004
+  intrstack(rw) : o = 0xffff0c, l = 0x000004
+
+
+    /* The stack starts at the top of internal ram.  */
+    /* topstack(rw) : o = 0xffff0c, l = 0x00004 */
+
+    /* External RAM area (2MB on CS1(0x200000-0x3fffff.MD6)) */
+    sramall(rwx) : o = 0x220000, l = 0x020000 /* Don't change!!! SRAM is 128KB */
+    
+    /*
+     * buffer領域は os部 のRAM領域を重なること.
+     * この領域を変更したら os/ld.src も見直すこと.
+     */
+    buffer(rwx)  : o = 0x220000, l = 0x002000 /* 8KB */
+
+
+	/* This holds variables in the "tiny" sections.  */
+	tiny(rw)   : o = 0xff8000, l = 0x7f00
+	/* At the very top of the address space is the 8-bit area.  */
+	eight(rw)  : o = 0xffff00, l = 0x100
+}
+SECTIONS
+{
+
+    .vectors :
+	{
+	      /* Use something like this to place a specific
+	         function's address into the vector table.
+	         LONG (ABSOLUTE (_foobar)).  */
+	      /* *(.vectors) */      
+	    KEEP(vector.o(.data))
+    }  > vectors
+	
+    .text :
+	{
+        _text_start = . ;
+	    KEEP(*(.text))
+	    . = ALIGN(2);
+   	    _text_end = . ;
+	} > rom
+
+    .rodata :
+	{
+        _rodata_start = . ;
+	    KEEP(*(.strings))
+	    KEEP(*(.rodata))
+		KEEP(*(.rodata.*))
+	    . = ALIGN(2);
+   	    _rodata_end = . ;
+	} > rom
+
+	
+    .data :
+	{
+        _data_start = . ;
+	    KEEP(*(.data))
+	    _data_end = . ;
+	}  > data
+	
+    .bss :
+	{
+	    _bss_start = . ;
+	    KEEP(*(.bss))
+	    KEEP(*(COMMON))
+	    _bss_end = . ;
+	} > data
+	
+	. = ALIGN(4);
+	_end = . ;
+
+	.softvec : {
+		_softvec = .;
+	} > softvec
+
+	.buffer : {
+	    _buffer_start = . ;
+	} > buffer 
+
+  .bootstack :
+  {
+  	_bootstack = . ;
+    *(.bootstack)
+  } > bootstack
+
+  .intrstack :
+  {
+  	_intrstack = . ;
+    *(.intrstack)
+  } > intrstack
+
+	
+    .tiny :
+	{
+	  *(.tiny)
+	}  > tiny
+    .eight :
+	{
+	  *(.eight)
+	}  > eight
+    .stab 0 (NOLOAD) :
+	{
+	  [ .stab ]
+	}
+    .stabstr 0 (NOLOAD) :
+	{
+	  [ .stabstr ]
+	}
+}
+

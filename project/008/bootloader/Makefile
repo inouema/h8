@@ -1,0 +1,77 @@
+#PREFIX  = /opt/kozos/cross2
+PREFIX  = /usr/local/cross2-gcc4
+ARCH    = h8300-elf
+BINDIR  = $(PREFIX)/bin
+ADDNAME = $(ARCH)-
+
+AR      = $(BINDIR)/$(ADDNAME)ar
+AS      = $(BINDIR)/$(ADDNAME)as
+CC      = $(BINDIR)/$(ADDNAME)gcc
+LD      = $(BINDIR)/$(ADDNAME)ld
+NM      = $(BINDIR)/$(ADDNAME)nm
+OBJCOPY = $(BINDIR)/$(ADDNAME)objcopy
+OBJDUMP = $(BINDIR)/$(ADDNAME)objdump
+RANLIB  = $(BINDIR)/$(ADDNAME)ranlib
+STRIP   = $(BINDIR)/$(ADDNAME)strip
+
+H8WRITE = ../../../tools/h8write/h8write
+
+# FreeBSD-4.x:/dev/cuaaX, FreeBSD-6.x:/dev/cuadX, FreeBSD(USB):/dev/cuaUx
+# Linux:/dev/ttySx, Linux(USB):/dev/ttyUSBx, Windows:comX
+H8WRITE_SERDEV = /dev/ttyUSB0
+
+OBJS  = crt0.o vector.o main.o intr.o interrupt.o
+OBJS += lib.o serial.o
+OBJS += xmodem.o elf.o
+OBJS += dram.o
+
+TARGET = kzload
+
+CFLAGS  = -Wall
+CFLAGS += -nostdinc -nostdlib -fno-builtin
+CFLAGS += -nostartfiles
+#CFLAGS += -mint32 # intを32ビットにすると掛算／割算ができなくなる
+#CFLAGS += -mrelax
+CFLAGS += -mh
+#CFLAGS += -ms
+#CFLAGS += -malign-300
+CFLAGS += -I.
+CFLAGS += -g3
+CFLAGS += -O0
+#CFLAGS += -Os
+CFLAGS += -DKZLOAD
+
+LFLAGS  = -static -T ld.scr -L.
+#LFLAGS += `${CC} -print-libgcc-file-name`
+
+
+.SUFFIXES: .c .o
+.SUFFIXES: .s .o
+
+all :		$(TARGET)
+
+$(TARGET) :	$(OBJS)
+		$(CC) $(OBJS) -o $(TARGET) $(CFLAGS) $(LFLAGS)
+		cp $(TARGET) $(TARGET).elf
+		$(STRIP) $(TARGET)
+
+.c.o :		$<
+		$(CC) -c $(CFLAGS) $<
+
+.s.o :		$<
+		$(CC) -c $(CFLAGS) $<
+
+.S.o :		$<
+		$(CC) -c $(CFLAGS) $<
+
+$(TARGET).mot :	$(TARGET)
+		$(OBJCOPY) -O srec $(TARGET) $(TARGET).mot
+
+image :		$(TARGET).mot
+
+write :		$(TARGET).mot 
+		$(H8WRITE) -3052 $(TARGET).mot $(H8WRITE_SERDEV)
+
+clean :
+		rm -f $(OBJS) $(TARGET) $(TARGET).elf $(TARGET).mot $(TARGET).objdump
+
