@@ -1,4 +1,5 @@
 /* Linker script, for H8/3052 on AKI-LAN target */
+/* For h8mon (CSE Tomakomai NCT) */
 /* OUTPUT_FORMAT("coff-h8300") */
 OUTPUT_ARCH(h8300h)
 ENTRY("_start")
@@ -6,25 +7,25 @@ MEMORY
 {
 	/* 0xc4 is a magic entry.  We should have the linker just
 	   skip over it one day...  */
-	/* vectors : o = 0x0000, l = 0xc4 */
-	/* magicvectors : o = 0xc4, l = 0x3c */
+	/* vectors(r) : o = 0xffe000, l = 0xc4 */
+	/* magicvectors : o = 0xffe0c4, l = 0x3c */
 	
-	vectors(r) : o = 0x0000, l = 0x100
-	
-    /* Internal ROM area */
-    rom(rx)    : o = 0x000100, l = 0x7feff
 	/* External RAM area (128KB on CS1) */
-	ram(rwx)    : o = 0x220000, l = 0x1ffff
-	/*ram    : o = 0xffdf10, l = 0x1fff*/
+	ramall(rwx) : o = 0x220000, l = 0x1ffff
+	vectors(r)  : o = 0x220000, l = 0x100
+	ram(rwx)    : o = 0x220100, l = 0x1feff
 	
     /* Internal RAM for stack */
     stack(rw)  : o = 0xffdf10, l = 0x1fff
+    
 	/* The stack starts at the top of internal ram.  */
-	topstack(rw) : o = 0xffff0c, l = 0x4
+	topstack : o = 0xffff0c, l = 0x4
+	
 	/* This holds variables in the "tiny" sections.  */
-	tiny(rw)   : o = 0xff8000, l = 0x7f00
+	tiny   : o = 0xff8000, l = 0x7f00
+	
 	/* At the very top of the address space is the 8-bit area.  */
-	eight(rw)  : o = 0xffff00, l = 0x100
+	eight  : o = 0xffff00, l = 0x100
 }
 SECTIONS
 {
@@ -36,44 +37,57 @@ SECTIONS
 	  /* *(.vectors) */
 	  vector.o(.data)
 	}  > vectors
+	
 .text :
-	{
-          _text_start = . ;
-	  *(.rodata)
-	  *(.text)
-	  *(.strings)
-          . = ALIGN(2) ;
-   	  _text_end = . ;
-	}  > rom
+    {
+        _text_start = . ;
+        
+        *(.rodata)
+        *(.text)
+        *(.strings)
+        
+        . = ALIGN(2) ;
+        
+        _text_end = . ;
+	}  > ram
+	
 .data : AT (_text_end)
 	{
-           _data_start = . ;
-	  *(.data)
-          . = ALIGN(2) ;
+        _data_start = . ;
+        
+        *(.data)
+        . = ALIGN(2) ;
+        
 	   _data_end = . ;
 	}  > ram
+	
 .bss :
 	{
-	   _bss_start = . ;
-	  *(.bss)
-	  *(COMMON)
-          . = ALIGN(2) ;
+	    _bss_start = . ;
+	    
+	    *(.bss)
+        *(COMMON)
+        . = ALIGN(2) ;
+        
 	   _bss_end = . ;
-           _end = . ;
-	}  >ram
+	}  > ram
+	
 .stack :
 	{
 	   _stack = . ;
 	  *(.stack)
 	}  > topstack
+	
 .tiny :
 	{
 	  *(.tiny)
 	}  > tiny
+	
 .eight :
 	{
 	  *(.eight)
 	}  > eight
+	
 .stab 0 (NOLOAD) :
 	{
 	  [ .stab ]
@@ -83,4 +97,3 @@ SECTIONS
 	  [ .stabstr ]
 	}
 }
-
